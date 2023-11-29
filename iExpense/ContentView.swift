@@ -7,13 +7,28 @@
 
 import SwiftUI
 
+struct SecondView: View {
+    @Environment(\.dismiss) var dismiss
+    var body: some View {
+        Button("Dismiss") {
+            dismiss()
+        }
+    }
+}
+
 struct ContentView: View {
+    @State private var showingSheet = false
+
     var body: some View {
         VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-            Text("Hello, world!")
+            Text("Hello :)")
+
+            Button("Show Sheet") {
+                showingSheet.toggle()
+            }
+            .sheet(isPresented: $showingSheet, content: {
+                SecondView()
+            })
         }
         .padding()
     }
