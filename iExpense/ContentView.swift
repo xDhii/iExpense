@@ -7,6 +7,38 @@
 
 import SwiftUI
 
+struct User: Codable {
+    let firstName: String
+    let lastName: String
+}
+
+struct CodableView: View {
+    @State private var user = User(firstName: "Adriano", lastName: "Valumin")
+
+    var body: some View {
+        Button("Save User") {
+            let encoder = JSONEncoder()
+
+            if let data = try? encoder.encode(user) {
+                UserDefaults.standard.set(data, forKey: "UserData")
+            }
+        }
+    }
+}
+
+struct UserDefault: View {
+    @AppStorage("tapCount") private var tapCount = 0
+    var body: some View {
+        Button("Tap Count: \(tapCount)") {
+            tapCount += 1
+        }
+        Divider()
+        Button("Reset") {
+            tapCount = 0
+        }
+    }
+}
+
 struct OnDelete: View {
     @Environment(\.dismiss) var dismiss
     @State private var numbers = [Int]()
@@ -39,20 +71,35 @@ struct OnDelete: View {
 }
 
 struct ContentView: View {
-    @State private var showingSheet = false
+    @State private var showingOnDelete = false
+    @State private var showingUserDefaults = false
+    @State private var showingCodable = false
     @State private var numbers = [Int]()
     @State private var currentNumber = 1
 
     var body: some View {
-        VStack {
+        List {
             Button("Show onDelete") {
-                showingSheet.toggle()
+                showingOnDelete.toggle()
             }
-            .sheet(isPresented: $showingSheet, content: {
+            .sheet(isPresented: $showingOnDelete, content: {
                 OnDelete()
             })
+
+            Button("Show UserDefaults") {
+                showingUserDefaults.toggle()
+            }
+            .sheet(isPresented: $showingUserDefaults, content: {
+                UserDefault()
+            })
+            
+            Button("Show Codable") {
+                showingCodable.toggle()
+            }
+            .sheet(isPresented: $showingCodable, content: {
+                CodableView()
+            })
         }
-        .padding()
     }
 }
 
