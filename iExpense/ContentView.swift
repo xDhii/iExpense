@@ -7,99 +7,74 @@
 
 import SwiftUI
 
-struct User: Codable {
-    let firstName: String
-    let lastName: String
+struct ExpenseItem: Identifiable, Codable {
+    var id = UUID()
+    let name: String
+    let type: String
+    let amount: Double
 }
 
-struct CodableView: View {
-    @State private var user = User(firstName: "Adriano", lastName: "Valumin")
-
-    var body: some View {
-        Button("Save User") {
-            let encoder = JSONEncoder()
-
-            if let data = try? encoder.encode(user) {
-                UserDefaults.standard.set(data, forKey: "UserData")
+@Observable
+class Expenses {
+    var items = [ExpenseItem]() {
+        didSet {
+            if let enconded = try? JSONEncoder().encode(items) {
+                UserDefaults.standard.set(enconded, forKey: "Items")
             }
         }
     }
-}
 
-struct UserDefault: View {
-    @AppStorage("tapCount") private var tapCount = 0
-    var body: some View {
-        Button("Tap Count: \(tapCount)") {
-            tapCount += 1
-        }
-        Divider()
-        Button("Reset") {
-            tapCount = 0
-        }
-    }
-}
-
-struct OnDelete: View {
-    @Environment(\.dismiss) var dismiss
-    @State private var numbers = [Int]()
-    @State private var currentNumber = 1
-
-    var body: some View {
-        NavigationStack {
-            VStack {
-                List {
-                    ForEach(numbers, id: \.self) {
-                        Text("Row \($0)")
-                    }
-                    .onDelete(perform: removeRows)
-                }
-            }
-            .toolbar {
-                EditButton()
+    init() {
+        if let savedItems = UserDefaults.standard.data(forKey: "Items") {
+            if let decodedItems = try? JSONDecoder().decode([ExpenseItem].self, from: savedItems) {
+                items = decodedItems
+                return
             }
         }
 
-        Button("Add Number") {
-            numbers.append(currentNumber)
-            currentNumber += 1
-        }
-    }
-
-    func removeRows(at offsets: IndexSet) {
-        numbers.remove(atOffsets: offsets)
+        items = []
     }
 }
 
 struct ContentView: View {
-    @State private var showingOnDelete = false
-    @State private var showingUserDefaults = false
-    @State private var showingCodable = false
-    @State private var numbers = [Int]()
-    @State private var currentNumber = 1
+    @State private var expenses = Expenses()
+    @State private var showingAddExpense = false
+    
+    private let userCurrency = Locale.current.currency?.identifier ?? "USD"
 
     var body: some View {
-        List {
-            Button("Show onDelete") {
-                showingOnDelete.toggle()
-            }
-            .sheet(isPresented: $showingOnDelete, content: {
-                OnDelete()
-            })
+        NavigationStack {
+            List {
+                ForEach(expenses.items) { item in
+                    HStack {
+                        VStack(alignment: .leading) {
+                            Text(item.name)
+                                .font(.headline)
 
-            Button("Show UserDefaults") {
-                showingUserDefaults.toggle()
+                            Text(item.type)
+                        }
+                        
+                        Spacer()
+                        
+                        Text(item.amount, format: .currency(code: userCurrency))
+                    }
+                }
+                .onDelete(perform: removeItems)
             }
-            .sheet(isPresented: $showingUserDefaults, content: {
-                UserDefault()
-            })
-            
-            Button("Show Codable") {
-                showingCodable.toggle()
+            .navigationTitle("iExpense")
+            .toolbar {
+                Button("Add Expense", systemImage: "plus") {
+                    showingAddExpense = true
+                }
             }
-            .sheet(isPresented: $showingCodable, content: {
-                CodableView()
+            .sheet(isPresented: $showingAddExpense, content: {
+                AddView(expenses: expenses)
             })
         }
+    }
+
+    func removeItems(at offsets: IndexSet) {
+        expenses.items.remove(atOffsets: offsets)
     }
 }
 
